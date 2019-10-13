@@ -103,5 +103,5 @@ s_2005['year'] = '2005'
 s_2001['year'] = '2001'
 overall_sentiment = pd.concat([s_2001, s_2005])
 
-ax = sns.scatterplot(x="arousal", y="valence", style='year', data=overall_sentiment)
+ax = sns.scatterplot(x="arousal", y="valence", style='year', data=overall_sentiment, s=75)
 plt.show()
