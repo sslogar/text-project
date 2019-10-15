@@ -7,6 +7,7 @@ import numpy as np
 import sklearn
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.cluster import KMeans
 
 stop_words = nltk.corpus.stopwords.words('english')
 
@@ -77,3 +78,27 @@ term_vec2001 = porter_stem(term_vec2001)
 docs = rebuild(term_vec2001)
 for d in docs:
     print(d)
+
+cv = CountVectorizer(min_df=0.,max_df=1.)
+cv_matrix=cv.fit_transform(docs)
+cv_matrix
+# print(cv_matrix)
+lda=LatentDirichletAllocation(n_components=3,max_iter=10000,random_state=0)
+dt_matrix = lda.fit_transform(cv_matrix)
+features=pd.DataFrame(dt_matrix,columns=['T1','T2','T3'])
+
+vocab=cv.get_feature_names()
+
+tt_matrix=lda.components_
+# for topic_weights in tt_matrix:
+#     topic = [(token,weight) for token, weight in zip(vocab, topic_weights)]
+#     topic = sorted(topic, key=lambda x: -x[1])
+#     topic = [item for item in topic if item[1] >2]
+#     print(topic)
+#     print()
+
+# print('type(tt_matrix)', type(tt_matrix))
+# kmeans = KMeans(n_clusters=3, random_state=0).fit(tt_matrix)
+kmeans = KMeans(n_clusters=3, random_state=0).fit(cv_matrix)
+print("Cluster Centers")
+print(kmeans.cluster_centers_)
