@@ -3,26 +3,23 @@ import nltk
 import re
 import string
 from nltk.tokenize import sent_tokenize, word_tokenize
+from sentiment_module import sentiment
 import numpy as np
 import sklearn
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 stop_words = nltk.corpus.stopwords.words('english')
 
-presidents = pd.read_csv('inaug_speeches.csv', encoding='ISO-8859-1') #take care of Unicode characters
-# presidents = pd.read_csv('inaug_speeches.csv', encoding='UTF-8')
+trump = pd.read_csv('trump.csv')
+print(trump)
+print(trump['text'])
+# sentences = sent_tokenize(trump['text']) #tokenize into sentences with nltk
 
-bush = presidents[presidents['Name'] == 'George W. Bush'] #filter for just Bush
-# print(bush)
-
-bush2001 = bush.iloc[0, :] #data frame with first Bush speech
-bush2005 = bush.iloc[1, :] #data frame with 2nd Bush speech
-
-sent2001 = sent_tokenize(bush2001['text']) #tokenize into sentences with nltk
-sent2005 = sent_tokenize(bush2005['text'])
 
 def tokenize_words(doc):
     #tokenize into words
@@ -65,6 +62,13 @@ def clean(term_vec):
         term_vec[i] = term_list
     return term_vec
 
+def return_sentiment(term_vec):
+    sent_v = []
+    for term in term_vec:
+        s = sentiment.sentiment(term)
+        sent_v.append(s) #append each dictionary returned by the sentiment function into a list
+    return sent_v
+
 def rebuild(term_vec):
     for i in range(0, len(term_vec)):
         doc = ""
@@ -72,23 +76,28 @@ def rebuild(term_vec):
         term_vec[i] = doc
     return term_vec
 
-term_vec2001 = tokenize_words(sent2001)
-term_vec2001 = clean(term_vec2001)
-term_vec2001 = remove_stop_words(term_vec2001, stop_words)
-term_vec2001 = porter_stem(term_vec2001)
-docs2001 = rebuild(term_vec2001)
+term_vec = tokenize_words(trump['text'])
+term_vec= clean(term_vec)
+term_vec = remove_stop_words(term_vec, stop_words)
+term_vec = porter_stem(term_vec)
+sentiment = return_sentiment(term_vec)
+s = pd.DataFrame(sentiment) #make a DataFrame out of the dictionary returned from the sentiment function
 
-corpus_df=pd.DataFrame({'Document':docs2001})
+def show_graphs(df):
+    sns.set()
+    # Plot scatterplot of arousal vs valence
+    ax = sns.scatterplot(x="arousal", y="valence", data=df)
+    plt.show()
 
-# for topic_weights in tt_matrix:
-#     topic = [(token,weight) for token, weight in zip(vocab, topic_weights)]
-#     topic = sorted(topic, key=lambda x: -x[1])
-#     topic = [item for item in topic if item[1] >2]
-#     print(topic)
-#     print()
+    ax = sns.distplot(df['arousal']) #distribution of arousal
+    plt.show()
 
-#spectral clustering
-#msd
+    ax = sns.distplot(df['valence']) #distribution of valence
+    plt.show()
+
+show_graphs(s)
+
+docs = rebuild(term_vec)
 
 def ldirichlet(docs):
     cv = CountVectorizer(min_df=0.,max_df=1.)
@@ -118,16 +127,5 @@ def kmeans(matrix, corpus_df):
         print('Top Document: ',speech)
         print('-'*20)
 
-tt = ldirichlet(docs2001)
-kmeans(tt, corpus_df)
-
-term_vec2005 = tokenize_words(sent2005)
-term_vec2005 = clean(term_vec2005)
-term_vec2005 = remove_stop_words(term_vec2005, stop_words)
-term_vec2005 = porter_stem(term_vec2005)
-docs2005 = rebuild(term_vec2005)
-
-corpus_df=pd.DataFrame({'Document':docs2005})
-
-tt = ldirichlet(docs2005)
+tt = ldirichlet(docs)
 kmeans(tt, corpus_df)
