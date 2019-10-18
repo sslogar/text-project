@@ -6,7 +6,6 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from sentiment_module import sentiment
 import numpy as np
 import sklearn
-from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
@@ -19,8 +18,14 @@ stop_words = nltk.corpus.stopwords.words('english')
 trump = pd.read_csv('trump.csv')
 print(trump)
 print(trump['text'])
-# sentences = sent_tokenize(trump['text']) #tokenize into sentences with nltk
+print(trump['text'][0])
 
+sentences = []
+for line in trump['text']:
+    sub_s = sent_tokenize(line)
+    for s in sub_s:
+        sentences.append(s)
+print(sentences)
 
 def tokenize_words(doc):
     #tokenize into words
@@ -48,21 +53,6 @@ def porter_stem(term_vec):
             term_vec[i][j] = porter.stem(term_vec[i][j])
     return term_vec
 
-def clean(term_vec):
-    #remove unicode codes from text (u0092, etc)
-    for i in range(0, len(term_vec)):
-        term_list = []
-        for term in term_vec[i]:
-            index = term.find('u00')
-            if (index > -1):
-                term = term[:index]
-                print(term)
-                term_list.append(term)
-            else:
-                term_list.append(term)
-        term_vec[i] = term_list
-    return term_vec
-
 def return_sentiment(term_vec):
     sent_v = []
     for term in term_vec:
@@ -77,13 +67,6 @@ def rebuild(term_vec):
         term_vec[i] = doc
     return term_vec
 
-term_vec = tokenize_words(trump['text'])
-term_vec= clean(term_vec)
-term_vec = remove_stop_words(term_vec, stop_words)
-term_vec = porter_stem(term_vec)
-sentiment = return_sentiment(term_vec)
-s = pd.DataFrame(sentiment) #make a DataFrame out of the dictionary returned from the sentiment function
-
 def show_graphs(df):
     sns.set()
     # Plot scatterplot of arousal vs valence
@@ -96,39 +79,36 @@ def show_graphs(df):
     ax = sns.distplot(df['valence']) #distribution of valence
     plt.show()
 
-show_graphs(s)
-
-docs = rebuild(term_vec)
-corpus_df=pd.DataFrame({ 'Document':docs })
-
-def ldirichlet(docs):
+def similarity_matrix(docs):
     cv = CountVectorizer(min_df=0.,max_df=1.)
     cv_matrix=cv.fit_transform(docs)
-    cv_matrix
-    # print(cv_matrix)
-    lda=LatentDirichletAllocation(n_components=6,max_iter=10000,random_state=0)
-    dt_matrix = lda.fit_transform(cv_matrix)
-    features=pd.DataFrame(dt_matrix,columns=['T1','T2','T3', 'T4', 'T5', 'T6'])
-
-    vocab=cv.get_feature_names()
-
-    tt_matrix=lda.components_
-    return tt_matrix
-
-def kmeans(matrix, corpus_df):
-    matrix = normalize(matrix)
+    matrix = normalize(cv_matrix)
     sim = cosine_similarity(matrix)
-    kmeans = KMeans(n_clusters=6, max_iter=10000, random_state=0).fit(sim)
+    return sim
+
+def kmeans(matrix, corpus_df, cl):
+    kmeans = KMeans(n_clusters=3, max_iter=10000, random_state=0).fit(matrix)
     corpus_df['kmeans_cluster'] = pd.Series(kmeans.labels_)
     speech_clusters =(corpus_df[['kmeans_cluster','Document']].sort_values(
             by=['kmeans_cluster'],ascending=False).groupby('kmeans_cluster').head(10))
 
     speech_clusters=speech_clusters.copy(deep=True)
-    for cluster_num in range(6):
+    for cluster_num in range(cl):
         speech = speech_clusters[speech_clusters['kmeans_cluster']== cluster_num]['Document'].values.tolist()
         print('CLUSTER #'+ str(cluster_num+1))
         print('Top Document: ',speech)
         print('-'*20)
 
-tt = ldirichlet(docs)
-kmeans(tt, corpus_df)
+term_vec = tokenize_words(sentences)
+term_vec = remove_stop_words(term_vec, stop_words)
+term_vec = porter_stem(term_vec)
+sentiment = return_sentiment(term_vec)
+s = pd.DataFrame(sentiment) #make a DataFrame out of the dictionary returned from the sentiment function
+
+show_graphs(s)
+
+docs = rebuild(term_vec)
+corpus_df=pd.DataFrame({ 'Document':docs })
+
+matrix = similarity_matrix(docs)
+kmeans(matrix, corpus_df, 3)
