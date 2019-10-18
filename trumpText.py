@@ -10,6 +10,7 @@ from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import normalize
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -98,6 +99,7 @@ def show_graphs(df):
 show_graphs(s)
 
 docs = rebuild(term_vec)
+corpus_df=pd.DataFrame({ 'Document':docs })
 
 def ldirichlet(docs):
     cv = CountVectorizer(min_df=0.,max_df=1.)
@@ -114,7 +116,8 @@ def ldirichlet(docs):
     return tt_matrix
 
 def kmeans(matrix, corpus_df):
-    sim = cosine_similarity(tt_matrix)
+    matrix = normalize(matrix)
+    sim = cosine_similarity(matrix)
     kmeans = KMeans(n_clusters=6, max_iter=10000, random_state=0).fit(sim)
     corpus_df['kmeans_cluster'] = pd.Series(kmeans.labels_)
     speech_clusters =(corpus_df[['kmeans_cluster','Document']].sort_values(

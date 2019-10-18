@@ -7,6 +7,7 @@ import numpy as np
 import sklearn
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import normalize
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -105,7 +106,8 @@ def ldirichlet(docs):
     return tt_matrix
 
 def kmeans(matrix, corpus_df):
-    sim = cosine_similarity(tt_matrix)
+    matrix = normalize(matrix)
+    sim = cosine_similarity(matrix)
     kmeans = KMeans(n_clusters=6, max_iter=10000, random_state=0).fit(sim)
     corpus_df['kmeans_cluster'] = pd.Series(kmeans.labels_)
     speech_clusters =(corpus_df[['kmeans_cluster','Document']].sort_values(
