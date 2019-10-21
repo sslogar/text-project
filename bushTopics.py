@@ -44,7 +44,7 @@ def clean(term_vec):
             index = term.find('u00')
             if (index > -1):
                 term = term[:index]
-                print(term)
+                # print(term)
                 term_list.append(term)
             else:
                 term_list.append(term)
@@ -97,7 +97,8 @@ docs2001 = rebuild(term_vec2001)
 corpus_df=pd.DataFrame({'Document':docs2001})
 
 matrix = similarity_matrix(docs2001)
-kmeans(matrix, corpus_df, 3)
+print('BUSH 2001')
+kmeans(matrix, corpus_df, 6)
 
 #####2005 Inauguration Speech#####
 bush2005 = bush.iloc[1, :] #data frame with 2nd Bush speech
@@ -111,4 +112,5 @@ docs2005 = rebuild(term_vec2005)
 corpus_df=pd.DataFrame({'Document':docs2005})
 
 matrix = similarity_matrix(docs2005)
-kmeans(matrix, corpus_df, 3)
+print('BUSH 2005')
+kmeans(matrix, corpus_df, 6)

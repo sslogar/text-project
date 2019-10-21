@@ -3,6 +3,7 @@ import nltk
 import re
 import string
 from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sentiment_module import sentiment
 import numpy as np
 import sklearn
@@ -99,6 +100,35 @@ def kmeans(matrix, corpus_df, cl):
         print('Top Document: ',speech)
         print('-'*20)
 
+def vader(sentence, threshold=0.1, verbose=False):
+    analyzer = SentimentIntensityAnalyzer()
+    scores = analyzer.polarity_scores(sentence)
+    agg_score = scores['compound']
+    final_sentiment = 'positive' if agg_score >= threshold else 'negative'
+    s_d = {'final_sentiment': final_sentiment, 'Polarity': round(agg_score, 2)}
+    if verbose:
+        positive = str(round(scores['pos'], 2) * 100) + '%'
+        final = round(agg_score, 2)
+        negative = str(round(scores['neg'], 2) * 100) + '%'
+        neutral = str(round(scores['neu'], 2) * 100) + '%'
+        sentiment_frame = pd.DataFrame([[final_sentiment, final, positive, negative, neutral]],
+                                        columns=pd.MultiIndex(levels=[['Sentiment Stats:'],
+                                        ['Predicted Sentiment', 'Polarity Score', 'Postive', 'negative', 'Neutral']],
+                                        labels=[[0,0,0,0,0], [0,1,2,3,4]]
+                                        ))
+        print(sentiment_frame)
+    return s_d
+
+def return_vader_sentiment(stemmed):
+    overall_sentiment=[]
+    for sentence in stemmed:
+        pred = vader(sentence, threshold=0.4, verbose=False)
+        overall_sentiment.append(pred)
+    overall_sentiment = pd.DataFrame(overall_sentiment)
+    ax = sns.lineplot(x=range(1, len(overall_sentiment.index)+1), y='Polarity', data=overall_sentiment)
+    plt.show()
+    return overall_sentiment
+
 term_vec = tokenize_words(sentences)
 term_vec = remove_stop_words(term_vec, stop_words)
 term_vec = porter_stem(term_vec)
@@ -108,6 +138,7 @@ s = pd.DataFrame(sentiment) #make a DataFrame out of the dictionary returned fro
 show_graphs(s)
 
 docs = rebuild(term_vec)
+return_vader_sentiment(docs)
 corpus_df=pd.DataFrame({ 'Document':docs })
 
 matrix = similarity_matrix(docs)
